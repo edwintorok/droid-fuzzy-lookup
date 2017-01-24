@@ -1,0 +1,25 @@
+sudo: false
+language: scala
+jdk:
+  - oraclejdk8
+scala:
+- 2.11.8
+addons:
+  apt:
+    packages:
+      - libc6-i386
+      - lib32z1
+      - lib32stdc++6
+
+before_cache:
+- find $HOME/.sbt -name "*.lock" -type f -delete
+- find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
+
+cache:
+  directories:
+  - $HOME/.ivy2/cache
+  - $HOME/.sbt/
+  - $HOME/.android/
+
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION clean test

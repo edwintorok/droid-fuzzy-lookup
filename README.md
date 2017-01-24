@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/edwintorok/droid-fuzzy-lookup.svg?branch=master)](https://travis-ci.org/edwintorok/droid-fuzzy-lookup)
+
 # Look up filenames using fuzzy search
 
 It looks up filenames that best match the pattern specified by the user.
