@@ -2,8 +2,8 @@ scalaVersion := "2.11.8"
 
 enablePlugins(AndroidApp)
 
-versionCode := Some(1)
-version := "0.1-SNAPSHOT"
+versionCode := Some(2)
+version := "0.2-SNAPSHOT"
 
 instrumentTestRunner :=
   "android.support.test.runner.AndroidJUnitRunner"
