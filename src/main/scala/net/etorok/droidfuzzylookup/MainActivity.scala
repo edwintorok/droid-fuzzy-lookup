@@ -2,8 +2,7 @@ package net.etorok.droidfuzzylookup
 
 import android.app.Activity
 import android.os.Bundle
-import android.util.Log
-import android.view.Window
+import android.view.{Gravity, Window}
 import android.widget._
 import macroid.FullDsl._
 import macroid._
@@ -12,52 +11,63 @@ import macroid.extras.EditTextTweaks._
 import macroid.extras.LinearLayoutTweaks._
 import macroid.extras.ViewTweaks._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
+
+object Id extends IdGenerator(start = 1000)
 
 class MainActivity extends Activity with Contexts[Activity] {
   // allows accessing `.value` on TR.resource.constants
-  implicit val context = this
+  private implicit val context = this
 
-  lazy val pathLookup = new PathLookup
-  lazy val msg = toast("Press Back again to exit") <~ long <~ fry
-  var listview = slot[ListView]
-  var toastDuration = 0
-  var lastBackPressed = 0L
+  private lazy val pathLookup = new PathLookup
+  private lazy val msg = toast("Press Back again to exit") <~ long <~ fry
+  //noinspection VarCouldBeVal
+  private var listview = slot[ListView]
+  //noinspection VarCouldBeVal
+  private var progress = slot[ProgressBar]
+  private var lastBackPressed = 0L
+
+  val getListViewId: Int = Id.listview
+
+  def isIdle: Boolean = listview.get.isShown
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     requestWindowFeature(Window.FEATURE_ACTION_BAR)
     super.onCreate(savedInstanceState)
-    var input = slot[EditText]
     setContentView {
       Ui.get {
         l[LinearLayout](
-          w[EditText] <~ wire(input) <~ hint(TR.string.search_hint.value) <~ TextTweaks.medium
+          w[EditText] <~ hint(TR.string.search_hint.value) <~ TextTweaks.medium
             <~ etSetInputTypeText
             <~ etImeOptionSearch
             <~ etClickActionSearch(onAction)
             <~ vMatchWidth <~ llLayoutMargin(16 dp, 16 dp, 16 dp, 16 dp),
-          w[ListView] <~ wire(listview) <~ vMatchParent
+          w[ProgressBar] <~ wire(progress) <~ hide,
+          w[ListView] <~ id(getListViewId) <~ wire(listview) <~ vMatchParent
         ) <~ vMatchParent <~ vertical
       }
     }
   }
 
-  def onAction(pattern: String) = {
-    pathLookup.performSearch(pattern) foreachUi { results =>
-      Log.i("results", s"Got ${results.length} answers")
-      listview <~ FileListable.listAdapterTweak(results)
-    }
+  private def perform(f: Ui[Any]) = { Ui.get(f); () }
+
+  private def onAction(pattern: String) = perform {
+    // http://47deg.github.io/macroid/docs/guide/Operators.html
+    val future = pathLookup.performSearch(pattern)
+    (listview <~ hide <~~ future.map(FileListable.listAdapterTweak) <~ show) ~
+      (progress <~ llLayoutGravity(Gravity.CENTER) <~ waitProgress(future))
   }
 
   override def onBackPressed(): Unit = {
     val now = System.currentTimeMillis
     val dt = now - lastBackPressed
     if (dt < 3500) {
-      Ui.get(msg <~ Loaf(_.cancel()))
+      perform(msg <~ Loaf(_.cancel()))
       super.onBackPressed()
     } else {
       lastBackPressed = now
-      Ui.get(msg <~ fry)
+      perform(msg <~ fry)
     }
 
   }

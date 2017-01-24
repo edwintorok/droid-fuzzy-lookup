@@ -12,7 +12,7 @@ import android.webkit.MimeTypeMap
 import android.widget.{ImageView, LinearLayout, TextView}
 import macroid.FullDsl._
 import macroid.extras.ImageViewTweaks._
-import macroid.extras.LinearLayoutTweaks._
+import macroid.extras.LinearLayoutTweaks.{W, _}
 import macroid.viewable.SlottedListable
 import macroid.{ContextWrapper, _}
 
@@ -26,16 +26,18 @@ object FileListable extends SlottedListable[File] {
 
   val cache: LruCache[String, Drawable] = new LruCache(10)
 
-  override def makeSlots(viewType: Int)(implicit ctx: ContextWrapper) = {
+  override def makeSlots(viewType: Int)(
+      implicit ctx: ContextWrapper): (Ui[W], Slots) = {
     val slots = new Slots
     val view = l[LinearLayout](
-      w[TextView] <~ wire(slots.path),
-      w[ImageView] <~ wire(slots.picture)
-    ) <~ On.click(clickItem(slots))
+        w[TextView] <~ wire(slots.path) <~ llMatchWeightHorizontal,
+        w[ImageView] <~ wire(slots.picture)
+      ) <~ On.click(clickItem(slots))
     (view, slots)
   }
 
-  override def fillSlots(slots: Slots, data: File)(implicit ctx: ContextWrapper) = {
+  override def fillSlots(slots: Slots, data: File)(
+      implicit ctx: ContextWrapper): Ui[Any] = {
     val path = data.getPath
     slots.file = data
     (slots.path <~ text(path)) ~
@@ -43,30 +45,32 @@ object FileListable extends SlottedListable[File] {
       (slots.picture <~ llLayoutGravity(Gravity.RIGHT))
   }
 
-  def getMime(f: File) =
-    Option(MimeTypeMap.getFileExtensionFromUrl(f.getPath)).map { extension =>
-      val mime = MimeTypeMap.getSingleton.getMimeTypeFromExtension(extension)
-      Log.d("getMime", s"mime type for ${extension} = ${mime}")
-      mime
-    }.getOrElse("text/plain")
+  private def getMime(f: File) =
+    Option(MimeTypeMap.getFileExtensionFromUrl(f.getPath))
+      .map { extension =>
+        val mime = MimeTypeMap.getSingleton.getMimeTypeFromExtension(extension)
+        Log.d("getMime", s"mime type for ${f.getPath} ($extension) = $mime")
+        mime
+      }
+      .getOrElse("text/plain")
 
-  def getIntent(file: File) = {
-    val innt = new Intent(Intent.ACTION_VIEW)
+  private def getIntent(file: File) = {
+    val intent = new Intent(Intent.ACTION_VIEW)
     val mime = getMime(file)
-    innt.setDataAndType(Uri.fromFile(file), mime)
-    innt
+    intent.setDataAndType(Uri.fromFile(file), mime)
+    intent
   }
 
-  def clickItem(slots: Slots)(implicit ctx: ContextWrapper) = Ui {
+  private def clickItem(slots: Slots)(implicit ctx: ContextWrapper) = Ui {
     try {
       ctx.bestAvailable.startActivity(getIntent(slots.file))
     } catch {
-      case e : ActivityNotFoundException =>
+      case _: ActivityNotFoundException =>
         Ui.get(toast(s"No app can handle ${slots.file}") <~ long <~ fry)
     }
   }
 
-  def getMimeIcon(f: File)(implicit ctx: ContextWrapper) = Future {
+  private def getMimeIcon(f: File)(implicit ctx: ContextWrapper) = Future {
     val mime = getMime(f)
     cache.get(mime) match {
       case null =>
@@ -84,12 +88,11 @@ object FileListable extends SlottedListable[File] {
     }
   }
 
+  //noinspection VarCouldBeVal,VarCouldBeVal
   class Slots {
-    var path = slot[TextView]
-    var picture = slot[ImageView]
+    var path: Option[TextView] = slot[TextView]
+    var picture: Option[ImageView] = slot[ImageView]
     var file = new File("")
   }
 
 }
-
-

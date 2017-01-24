@@ -11,6 +11,7 @@ instrumentTestRunner :=
 platformTarget := "android-25"
 
 javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil
+scalacOptions += "-Ywarn-value-discard"
 
 transitiveAndroidLibs in Android := false
 
@@ -36,6 +37,7 @@ libraryDependencies ++= Seq(
   aar("org.macroid" %% "macroid-viewable" % "2.0"),
   "com.rockymadden.stringmetric" %% "stringmetric-core" % "0.27.4",
   "com.android.support.test" % "runner" % "0.5" % "androidTest",
+  "com.android.support.test" % "rules" % "0.5" % "androidTest",
   "com.android.support.test.espresso" % "espresso-core" % "2.2.2" % "androidTest"
 )
 
