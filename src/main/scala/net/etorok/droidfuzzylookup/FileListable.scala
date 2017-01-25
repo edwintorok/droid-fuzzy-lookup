@@ -16,6 +16,7 @@ import macroid.extras.LinearLayoutTweaks.{W, _}
 import macroid.viewable.SlottedListable
 import macroid.{ContextWrapper, _}
 
+import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -24,7 +25,8 @@ import scala.concurrent.Future
   */
 object FileListable extends SlottedListable[File] {
 
-  val cache: LruCache[String, Drawable] = new LruCache(10)
+  val MAX_CACHE_SIZE = 10
+  val cache: LruCache[String, Option[Drawable]] = new LruCache(MAX_CACHE_SIZE)
 
   override def makeSlots(viewType: Int)(
       implicit ctx: ContextWrapper): (Ui[W], Slots) = {
@@ -36,12 +38,15 @@ object FileListable extends SlottedListable[File] {
     (view, slots)
   }
 
+  private def ivSrcOpt(ico: Option[Drawable]) =
+    ico.map(ivSrc).getOrElse(hide)
+
   override def fillSlots(slots: Slots, data: File)(
       implicit ctx: ContextWrapper): Ui[Any] = {
     val path = data.getPath
     slots.file = data
     (slots.path <~ text(path)) ~
-      (slots.picture <~ getMimeIcon(data).map(ivSrc)) ~
+      (slots.picture <~ getMimeIcon(data).map(ivSrcOpt)) ~
       (slots.picture <~ llLayoutGravity(Gravity.RIGHT))
   }
 
@@ -72,19 +77,16 @@ object FileListable extends SlottedListable[File] {
 
   private def getMimeIcon(f: File)(implicit ctx: ContextWrapper) = Future {
     val mime = getMime(f)
-    cache.get(mime) match {
-      case null =>
-        val pm = ctx.bestAvailable.getPackageManager
-        val intent = getIntent(f)
-        val ico = {
-          val matches = pm.queryIntentActivities(intent, 0)
-          Log.d("getMimeIcon", s"matches: ${matches.size()}")
-          if (matches.isEmpty) null
-          else matches.get(0).loadIcon(pm)
-        }
-        cache.put(mime, ico)
-        ico
-      case ico => ico
+    Option(cache.get(mime)).getOrElse {
+      val pm = ctx.bestAvailable.getPackageManager
+      val intent = getIntent(f)
+      val ico = {
+        val matches = pm.queryIntentActivities(intent, 0)
+        Log.d("getMimeIcon", s"matches: ${matches.size}")
+        matches.headOption.map(_.loadIcon(pm))
+      }
+      cache.put(mime, ico)
+      ico
     }
   }
 

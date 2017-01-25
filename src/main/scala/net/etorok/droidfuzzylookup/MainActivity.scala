@@ -14,11 +14,12 @@ import macroid.extras.ViewTweaks._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
-object Id extends IdGenerator(start = 1000)
-
 class MainActivity extends Activity with Contexts[Activity] {
   // allows accessing `.value` on TR.resource.constants
   private implicit val context = this
+
+  private val FIRST_ID = 1000
+  object Id extends IdGenerator(start = FIRST_ID)
 
   private lazy val pathLookup = new PathLookup
   private lazy val msg = toast("Press Back again to exit") <~ long <~ fry

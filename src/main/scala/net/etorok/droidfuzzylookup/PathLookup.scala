@@ -23,32 +23,28 @@ class PathLookup {
   private val bytesFiles = allFiles map { theMap =>
     Log.d(prefix, s"allFiles: ${theMap.size}")
     printTime("bytesFiles") {
-      val table: Array[Set[String]] = Array.ofDim(256)
+      val table = (Array fill 256)(Set[String]())
       theMap foreach {
         case (key, _) =>
           val bytes = key.getBytes
-          bytes.foreach { b =>
-            val idx: Int = b
-            if (table(idx) == null)
-              table(idx) = Set(key)
-            else
-              table(idx) += key
-          }
+          bytes.foreach(table(_) += key)
       }
       table
     }
   }
 
-  def performSearch(pattern: String): Future[Seq[File]] =
+  val DEFAULT_MAX_RESULTS = 50
+
+  def performSearch(pattern: String,
+                    maxResults: Int = DEFAULT_MAX_RESULTS): Future[Seq[File]] =
     bytesFiles flatMap { table =>
       Log.i(prefix, s"performSearch pattern: $pattern")
       val candidates = printTime("candidates") {
         val bytes = pattern.getBytes()
-        if (bytes.isEmpty) Set.empty
-        else
-          (bytes foldLeft table(bytes(0))) {
-            case (set, c) => set & table(c)
-          }
+        val first = bytes.headOption.map(table(_)).getOrElse(Set.empty)
+        (bytes foldLeft first) {
+          case (set, c) => set & table(c)
+        }
       }
       Log.d(prefix, s"candidates:${candidates.size}")
       val answers: SortedSet[(Double, String)] = printTime("compute scores") {
@@ -56,7 +52,9 @@ class PathLookup {
           RatcliffObershelpMetric.compare(name, pattern).getOrElse(0.0) -> name
         }(breakOut)
       }
-      val sorted = printTime("choose") { answers.takeRight(50).toSeq.reverse }
+      val sorted = printTime("choose") {
+        answers.takeRight(maxResults).toSeq.reverse
+      }
       Log.d(prefix, s"answers: ${answers.size}, sorted: ${sorted.size}")
       allFiles map { all =>
         sorted flatMap {
@@ -75,11 +73,9 @@ class PathLookup {
 
   private def foldFilesCanon(accum: Set[File], file: File): Set[File] = {
     val path = file.getCanonicalFile
-    if (accum.contains(path)) accum
-    else {
+    if (accum.contains(path)) { accum } else {
       val files = try {
-        if (path.isDirectory) Option(path.listFiles)
-        else None
+        if (path.isDirectory) { Option(path.listFiles) } else { None }
       } catch {
         case (_: SecurityException) | (_: java.io.IOException) => None
       }
