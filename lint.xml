@@ -1,3 +1,9 @@
-<issue id="NewApi">
-  <ignore path="src/main/res/drawable"/>
-</issue>
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="NewApi">
+        <ignore path="src/main/res/drawable"/>
+    </issue>
+    <issue id="InvalidPackage">
+        <ignore path="*scala-library*.jar"/>
+    </issue>
+</lint>

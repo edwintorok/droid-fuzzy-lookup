@@ -39,7 +39,7 @@ class MainActivity extends Activity with Contexts[Activity] {
     setContentView {
       Ui.get {
         l[LinearLayout](
-          w[EditText] <~ hint(TR.string.search_hint.value) <~ TextTweaks.medium
+          w[EditText] <~ hint(R.string.search_hint) <~ TextTweaks.medium
             <~ etSetInputTypeText
             <~ etImeOptionSearch
             <~ etClickActionSearch(onAction)

@@ -1,0 +1,88 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven { url 'https://jitpack.io' }
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.2.0'
+        classpath 'com.github.xingda920813:gradle-android-scala-plugin:java8'
+    }
+}
+
+repositories {
+    jcenter()
+}
+
+apply plugin: "com.android.application"
+apply plugin: "jp.leafytree.android-scala"
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.additionalParameters = ["-feature", "-Ywarn-value-discard"]
+}
+
+
+android {
+    if (project.hasProperty("MYAPP_RELEASE_STORE_FILE")) {
+        signingConfigs {
+            release {
+                storeFile file(MYAPP_RELEASE_STORE_FILE)
+                storePassword MYAPP_RELEASE_STORE_PASSWORD
+                keyAlias MYAPP_RELEASE_KEY_ALIAS
+                keyPassword MYAPP_RELEASE_KEY_PASSWORD
+            }
+        }
+    }
+    compileSdkVersion "android-25"
+    buildToolsVersion "25.0.2"
+    defaultConfig {
+        targetSdkVersion 25
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        versionCode 2
+        versionName "0.2"
+        resConfigs "en"
+    }
+    buildTypes {
+        debug {
+            multiDexEnabled true
+        }
+        release {
+            shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    productFlavors {
+        dev {
+            minSdkVersion 21 // To reduce compilation time
+        }
+        prod {
+            minSdkVersion 10
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (project.hasProperty("MYAPP_RELEASE_STORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+    dexOptions {
+        preDexLibraries false
+        javaMaxHeapSize "2g"
+    }
+    packagingOptions {
+        exclude 'rootdoc.txt'
+    }
+}
+
+dependencies {
+    compile('com.android.support:support-compat:25.1.0') { transitive = false }
+    compile('com.android.support:support-fragment:25.1.0') { transitive = false }
+    compile('org.scala-lang:scala-library:2.11.8') { transitive = false }
+    compile('org.macroid:macroid_2.11:2.0') { transitive = false }
+    compile('org.macroid:macroid-extras_2.11:2.0') { transitive = false }
+    compile('org.macroid:macroid-viewable_2.11:2.0') { transitive = false }
+    compile('com.rockymadden.stringmetric:stringmetric-core_2.11:0.27.4') { transitive = false }
+    androidTestCompile "com.android.support:multidex-instrumentation:1.0.1", { exclude module: "multidex" }
+    androidTestCompile 'com.android.support.test:runner:0.5'
+    androidTestCompile 'com.android.support.test:rules:0.5'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
+}

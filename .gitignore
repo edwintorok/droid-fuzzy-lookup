@@ -1,6 +1,4 @@
-target/
-project/project
-bin/
-local.properties
+build/
 .idea
-proguard-sbt.txt
+.gradle
+*.iml
